@@ -47,5 +47,44 @@ export const useHospedes = () => {
     },
   });
 
-  return { hospedes, isLoading, createHospede };
+  const updateHospede = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Hospede> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("hospedes")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hospedes"] });
+      toast.success("Hóspede atualizado com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteHospede = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("hospedes")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hospedes"] });
+      toast.success("Hóspede excluído com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  return { hospedes, isLoading, createHospede, updateHospede, deleteHospede };
 };

@@ -47,8 +47,9 @@ export const Sidebar = () => {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-6">
-            <h1 className="text-xl font-bold text-sidebar-foreground">
-              Pousada <span className="text-sidebar-primary">Mão Preta</span>
+            <img className="h-10" src="favicon.png" alt="" />
+            <h1 className="text-lg font-bold text-sidebar-foreground">
+              Pousada <span className="">Mão Preta</span>
             </h1>
           </div>
 

@@ -1,14 +1,27 @@
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Mail, Phone, Trash2 } from "lucide-react";
 import { useHospedes } from "@/hooks/useHospedes";
 import { AddHospedeDialog } from "@/components/hospedes/AddHospedeDialog";
 import { ViewHospedeDialog } from "@/components/hospedes/ViewHospedeDialog";
+import { EditHospedeDialog } from "@/components/hospedes/EditHospedeDialog";
 import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Hospedes = () => {
-  const { hospedes, isLoading } = useHospedes();
+  const { hospedes, isLoading, deleteHospede } = useHospedes();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredHospedes = hospedes.filter((hospede) => {
@@ -81,7 +94,35 @@ const Hospedes = () => {
                   <div className="text-sm text-muted-foreground">
                     Documento: {hospede.documento}
                   </div>
-                  <ViewHospedeDialog hospede={hospede} />
+                  <div className="flex gap-2">
+                    <ViewHospedeDialog hospede={hospede} />
+                    <EditHospedeDialog hospede={hospede} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="outline">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir o hóspede <strong>{hospede.nome}</strong>? 
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteHospede.mutate(hospede.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>
