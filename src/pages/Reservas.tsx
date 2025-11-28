@@ -2,14 +2,27 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, BedDouble } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Calendar, BedDouble, Trash2 } from "lucide-react";
 import { useReservas } from "@/hooks/useReservas";
 import { useState } from "react";
 import { AddReservaDialog } from "@/components/reservas/AddReservaDialog";
 import { ViewReservaDialog } from "@/components/reservas/ViewReservaDialog";
+import { EditReservaDialog } from "@/components/reservas/EditReservaDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Reservas = () => {
-  const { reservas, isLoading } = useReservas();
+  const { reservas, isLoading, deleteReserva } = useReservas();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredReservas = reservas.filter((reserva) => {
@@ -112,6 +125,32 @@ const Reservas = () => {
                       </div>
                       <div className="flex gap-2">
                         <ViewReservaDialog reserva={reserva} />
+                        <EditReservaDialog reserva={reserva} />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="outline">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a reserva de <strong>{reserva.hospedes?.nome}</strong> para o Quarto {reserva.quartos?.numero}? 
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteReserva.mutate(reserva.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>
