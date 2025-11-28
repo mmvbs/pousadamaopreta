@@ -9,9 +9,10 @@ import { useState, useEffect } from "react";
 import { useReservas } from "@/hooks/useReservas";
 import { useHospedes } from "@/hooks/useHospedes";
 import { useQuartos } from "@/hooks/useQuartos";
+import { toast } from "sonner";
 
 export const AddReservaDialog = () => {
-  const { createReserva } = useReservas();
+  const { createReserva, checkQuartoDisponibilidade, reservas } = useReservas();
   const { hospedes } = useHospedes();
   const { quartos } = useQuartos();
   const [open, setOpen] = useState(false);
@@ -43,9 +44,53 @@ export const AddReservaDialog = () => {
     }
   }, [formData.quarto_id, formData.data_checkin, formData.data_checkout, quartos]);
 
+  // Filtrar quartos disponíveis baseado nas datas
+  const quartosDisponiveis = quartos.filter(q => {
+    if (q.status !== "disponivel") return false;
+    if (!formData.data_checkin || !formData.data_checkout) return true;
+
+    const checkin = new Date(formData.data_checkin);
+    const checkout = new Date(formData.data_checkout);
+
+    // Verificar se há conflito com reservas existentes
+    const temConflito = reservas.some(reserva => {
+      if (reserva.quarto_id !== q.id) return false;
+      if (!["confirmada", "checkin"].includes(reserva.status)) return false;
+
+      const reservaCheckin = new Date(reserva.data_checkin);
+      const reservaCheckout = new Date(reserva.data_checkout);
+
+      return (
+        (checkin >= reservaCheckin && checkin < reservaCheckout) ||
+        (checkout > reservaCheckin && checkout <= reservaCheckout) ||
+        (checkin <= reservaCheckin && checkout >= reservaCheckout)
+      );
+    });
+
+    return !temConflito;
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação de datas
+    if (formData.data_checkout <= formData.data_checkin) {
+      toast.error("A data de check-out deve ser posterior à data de check-in");
+      return;
+    }
+
+    // Verificar disponibilidade do quarto
+    const disponivel = await checkQuartoDisponibilidade(
+      formData.quarto_id,
+      formData.data_checkin,
+      formData.data_checkout
+    );
+
+    if (!disponivel) {
+      toast.error("O quarto que você selecionou não está disponível no período desejado.");
+      return;
+    }
+
     await createReserva.mutateAsync({
       hospede_id: formData.hospede_id,
       quarto_id: formData.quarto_id,
@@ -71,7 +116,7 @@ export const AddReservaDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary">
+        <Button className="bg-primary hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />
           Nova Reserva
         </Button>
@@ -106,11 +151,17 @@ export const AddReservaDialog = () => {
                   <SelectValue placeholder="Selecione um quarto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {quartos.filter(q => q.status === "disponivel").map((quarto) => (
-                    <SelectItem key={quarto.id} value={quarto.id}>
-                      Quarto {quarto.numero} - {quarto.tipo}
-                    </SelectItem>
-                  ))}
+                  {quartosDisponiveis.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Nenhum quarto disponível para o período selecionado
+                    </div>
+                  ) : (
+                    quartosDisponiveis.map((quarto) => (
+                      <SelectItem key={quarto.id} value={quarto.id}>
+                        Quarto {quarto.numero} - {quarto.tipo} (R$ {Number(quarto.preco_diaria).toFixed(2)}/noite)
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

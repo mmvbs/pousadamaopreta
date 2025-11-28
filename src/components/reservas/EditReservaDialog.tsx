@@ -9,13 +9,14 @@ import { useState, useEffect } from "react";
 import { Reserva, useReservas } from "@/hooks/useReservas";
 import { useHospedes } from "@/hooks/useHospedes";
 import { useQuartos } from "@/hooks/useQuartos";
+import { toast } from "sonner";
 
 interface EditReservaDialogProps {
   reserva: Reserva;
 }
 
 export const EditReservaDialog = ({ reserva }: EditReservaDialogProps) => {
-  const { updateReserva } = useReservas();
+  const { updateReserva, checkQuartoDisponibilidade, reservas } = useReservas();
   const { hospedes } = useHospedes();
   const { quartos } = useQuartos();
   const [open, setOpen] = useState(false);
@@ -29,9 +30,34 @@ export const EditReservaDialog = ({ reserva }: EditReservaDialogProps) => {
     observacoes: reserva.observacoes || "",
   });
 
-  const quartosDisponiveis = quartos.filter(
-    (q) => q.status === "disponivel" || q.id === reserva.quarto_id
-  );
+  // Filtrar quartos disponíveis considerando as datas
+  const quartosDisponiveis = quartos.filter(q => {
+    // Sempre incluir o quarto atual da reserva
+    if (q.id === reserva.quarto_id) return true;
+    if (q.status !== "disponivel") return false;
+    if (!formData.data_checkin || !formData.data_checkout) return true;
+
+    const checkin = new Date(formData.data_checkin);
+    const checkout = new Date(formData.data_checkout);
+
+    // Verificar se há conflito com outras reservas (excluindo a atual)
+    const temConflito = reservas.some(r => {
+      if (r.id === reserva.id) return false; // Ignorar a reserva atual
+      if (r.quarto_id !== q.id) return false;
+      if (!["confirmada", "checkin"].includes(r.status)) return false;
+
+      const reservaCheckin = new Date(r.data_checkin);
+      const reservaCheckout = new Date(r.data_checkout);
+
+      return (
+        (checkin >= reservaCheckin && checkin < reservaCheckout) ||
+        (checkout > reservaCheckin && checkout <= reservaCheckout) ||
+        (checkin <= reservaCheckin && checkout >= reservaCheckout)
+      );
+    });
+
+    return !temConflito;
+  });
 
   useEffect(() => {
     const selectedQuarto = quartos.find((q) => q.id === formData.quarto_id);
@@ -50,6 +76,25 @@ export const EditReservaDialog = ({ reserva }: EditReservaDialogProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação de datas
+    if (formData.data_checkout <= formData.data_checkin) {
+      toast.error("A data de check-out deve ser posterior à data de check-in");
+      return;
+    }
+
+    // Verificar disponibilidade do quarto (excluindo a reserva atual)
+    const disponivel = await checkQuartoDisponibilidade(
+      formData.quarto_id,
+      formData.data_checkin,
+      formData.data_checkout,
+      reserva.id
+    );
+
+    if (!disponivel) {
+      toast.error("O quarto que você selecionou não está disponível no período desejado.");
+      return;
+    }
+
     await updateReserva.mutateAsync({
       id: reserva.id,
       hospede_id: formData.hospede_id,

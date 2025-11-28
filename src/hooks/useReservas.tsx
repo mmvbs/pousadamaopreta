@@ -102,5 +102,51 @@ export const useReservas = () => {
     },
   });
 
-  return { reservas, isLoading, createReserva, updateReserva, deleteReserva };
+  const checkQuartoDisponibilidade = async (
+    quartoId: string,
+    dataCheckin: string,
+    dataCheckout: string,
+    reservaIdExcluir?: string
+  ) => {
+    let query = supabase
+      .from("reservas")
+      .select("id, data_checkin, data_checkout")
+      .eq("quarto_id", quartoId)
+      .in("status", ["confirmada", "checkin"]);
+
+    // Só aplica o filtro de exclusão se houver um ID válido
+    if (reservaIdExcluir) {
+      query = query.neq("id", reservaIdExcluir);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const checkin = new Date(dataCheckin);
+    const checkout = new Date(dataCheckout);
+
+    // Verificar se há sobreposição de datas
+    const temConflito = data.some((reserva) => {
+      const reservaCheckin = new Date(reserva.data_checkin);
+      const reservaCheckout = new Date(reserva.data_checkout);
+
+      return (
+        (checkin >= reservaCheckin && checkin < reservaCheckout) ||
+        (checkout > reservaCheckin && checkout <= reservaCheckout) ||
+        (checkin <= reservaCheckin && checkout >= reservaCheckout)
+      );
+    });
+
+    return !temConflito;
+  };
+
+  return { 
+    reservas, 
+    isLoading, 
+    createReserva, 
+    updateReserva, 
+    deleteReserva,
+    checkQuartoDisponibilidade 
+  };
 };
