@@ -61,6 +61,49 @@ export const usePagamentos = () => {
       toast.error(error.message);
     },
   });
+  const deletePagamento = useMutation({
+    mutationFn: async (id: string) => {
 
-  return { pagamentos, isLoading, createPagamento };
+      const { data: pagamento } = await supabase
+        .from("pagamentos")
+        .select("reserva_id")
+        .eq("id", id)
+        .single();
+      const { error } = await supabase
+        .from("pagamentos")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      toast.success("pagamento excluído com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updatePagamento = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Pagamento> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("pagamentos")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      toast.success("Pagamento atualizado com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+  return { pagamentos, isLoading, createPagamento, deletePagamento, updatePagamento };
 };

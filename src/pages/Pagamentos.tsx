@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, CreditCard, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
 import { usePagamentos } from "@/hooks/usePagamentos";
+import { EditPagamentosDialog } from "@/components/pagamentos/EditPagamentosDialog";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,10 +18,14 @@ const Pagamentos = () => {
 
   const filteredPagamentos = pagamentos.filter((pagamento) => {
     const searchLower = searchTerm.toLowerCase();
+    const hospedeNome = pagamento.reservas?.hospedes?.nome ?? "";
+    const quartoNumero = pagamento.reservas?.quartos?.numero ?? "";
+    const metodo = pagamento.metodo ?? "";
+
     return (
-      pagamento.reservas?.hospedes?.nome.toLowerCase().includes(searchLower) ||
-      pagamento.reservas?.quartos?.numero.toLowerCase().includes(searchLower) ||
-      pagamento.metodo.toLowerCase().includes(searchLower)
+      hospedeNome.toLowerCase().includes(searchLower) ||
+      quartoNumero.toLowerCase().includes(searchLower) ||
+      metodo.toLowerCase().includes(searchLower)
     );
   });
 
@@ -203,16 +208,19 @@ const Pagamentos = () => {
                           R$ {Number(pagamento.valor).toFixed(2)}
                         </p>
                       </div>
-                      {pagamento.status === "pendente" && (
-                        <Button 
-                          size="sm" 
-                          className="bg-success hover:bg-success/90"
-                          onClick={() => handleConfirmPayment(pagamento.id)}
-                          disabled={confirmingPayment === pagamento.id}
-                        >
-                          {confirmingPayment === pagamento.id ? "Confirmando..." : "Confirmar Pagamento"}
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <EditPagamentosDialog pagamento={pagamento} />
+                        {pagamento.status === "pendente" && (
+                          <Button 
+                            size="sm" 
+                            className="bg-success hover:bg-success/90"
+                            onClick={() => handleConfirmPayment(pagamento.id)}
+                            disabled={confirmingPayment === pagamento.id}
+                          >
+                            {confirmingPayment === pagamento.id ? "Confirmando..." : "Confirmar Pagamento"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
