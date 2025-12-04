@@ -70,5 +70,23 @@ export const useQuartos = () => {
     },
   });
 
-  return { quartos, isLoading, createQuarto, updateQuarto };
+  const deleteQuarto = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("quartos")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quartos"] });
+      toast.success("Quarto excluído com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  return { quartos, isLoading, createQuarto, updateQuarto, deleteQuarto };
 };

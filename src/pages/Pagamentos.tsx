@@ -3,15 +3,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, CreditCard, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Search, CreditCard, Calendar, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
 import { usePagamentos } from "@/hooks/usePagamentos";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddPagamentoDialog } from "@/components/pagamentos/AddPagamentoDialog";
+import { EditPagamentoDialog } from "@/components/pagamentos/EditPagamentoDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Pagamentos = () => {
-  const { pagamentos, isLoading } = usePagamentos();
+  const { pagamentos, isLoading, updatePagamento, deletePagamento } = usePagamentos();
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null);
 
@@ -27,15 +38,7 @@ const Pagamentos = () => {
   const handleConfirmPayment = async (paymentId: string) => {
     setConfirmingPayment(paymentId);
     try {
-      const { error } = await supabase
-        .from("pagamentos")
-        .update({ status: "pago" })
-        .eq("id", paymentId);
-
-      if (error) throw error;
-
-      toast.success("Pagamento confirmado com sucesso!");
-      window.location.reload();
+      await updatePagamento.mutateAsync({ id: paymentId, status: "pago" });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -203,16 +206,44 @@ const Pagamentos = () => {
                           R$ {Number(pagamento.valor).toFixed(2)}
                         </p>
                       </div>
-                      {pagamento.status === "pendente" && (
-                        <Button 
-                          size="sm" 
-                          className="bg-success hover:bg-success/90"
-                          onClick={() => handleConfirmPayment(pagamento.id)}
-                          disabled={confirmingPayment === pagamento.id}
-                        >
-                          {confirmingPayment === pagamento.id ? "Confirmando..." : "Confirmar Pagamento"}
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        <EditPagamentoDialog pagamento={pagamento} />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="outline">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir o pagamento de <strong>R$ {Number(pagamento.valor).toFixed(2)}</strong> de {pagamento.reservas?.hospedes?.nome || 'N/A'}? 
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deletePagamento.mutate(pagamento.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        {pagamento.status === "pendente" && (
+                          <Button 
+                            size="sm" 
+                            className="bg-success hover:bg-success/90"
+                            onClick={() => handleConfirmPayment(pagamento.id)}
+                            disabled={confirmingPayment === pagamento.id}
+                          >
+                            {confirmingPayment === pagamento.id ? "Confirmando..." : "Confirmar"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

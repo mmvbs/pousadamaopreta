@@ -1,10 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BedDouble, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BedDouble, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Quarto } from "@/hooks/useQuartos";
+import { Quarto, useQuartos } from "@/hooks/useQuartos";
 import { ViewQuartoDialog } from "@/components/quartos/ViewQuartoDialog";
 import { EditQuartoDialog } from "@/components/quartos/EditQuartoDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface RoomCardProps {
   number: string;
@@ -22,6 +34,7 @@ const statusConfig = {
 };
 
 export const RoomCard = ({ number, type, capacity, price, status, quarto }: RoomCardProps) => {
+  const { deleteQuarto } = useQuartos();
   const statusStyle = statusConfig[status];
 
   return (
@@ -60,6 +73,31 @@ export const RoomCard = ({ number, type, capacity, price, status, quarto }: Room
             <div className="flex gap-2">
               <ViewQuartoDialog quarto={quarto} />
               <EditQuartoDialog quarto={quarto} />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="icon" variant="outline">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir o <strong>Quarto {number}</strong>? 
+                      Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteQuarto.mutate(quarto.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
